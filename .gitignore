@@ -1,4 +1,4 @@
-# o que for posto aqui, não será enviado para o repositório remoto (github,gitlab,etc)
+# o que for posto aqui, não será enviado para o repositório remoto (github,gitlab,etc)init
 
 # Node modules (dependências do projeto, pastas criada ao rodar "npm-install")
 # pasta muito grande, não faz sentido enviar para o repositório (dependências são listadas na pasta)
