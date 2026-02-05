@@ -1,10 +1,13 @@
 const express = require('express');
 const app = express();
+const {testConnection} = require('./config/db');
+const serverRoutes = require('./server'); 
 
 app.use(express.json());
 
 app.get('/', (req,res) => res.send({status: 'ok', message:'API funcionando'}));
 
+app.use('/', serverRoutes);
 
 app.get('/hello', (req,res) =>
 res.send({ message: 'hello, word!'})
@@ -34,4 +37,12 @@ app.use((err,req,res,next) =>{
     console.error(err);
 res.status(err.status || 500).json({ error: err.message || 'Erro Interno'});
 });
+
+async function verificarDB() {
+ const resultado = await testConnection();
+ console.log (resultado.message)
+ //console.log(resultado.message);
+}
+verificarDB();
+
 module.exports = app;
