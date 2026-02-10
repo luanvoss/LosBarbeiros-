@@ -19,7 +19,7 @@ router.get('/:id', async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Cliente não encontrado' });
     }
-    res.json(rows[0]); // retorna o primeiro (e único) resultado
+    res.json(rows[0]); 
   } catch (error) {
     console.error('Erro ao consultar produto:', error);
     res.status(500).json({ error: 'Erro ao consultar produto', details: error.message });
@@ -33,11 +33,40 @@ router.get('/nome/:nome', async (req,res) => {
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Cliente não encontrado' });
     }
-    res.json(rows[0]); // retorna o primeiro (e único) resultado
+    res.json(rows[0]); 
   } catch (error) {
-    console.error('Erro ao consultar produto:', error);
-    res.status(500).json({ error: 'Erro ao consultar produto', details: error.message });
+    console.error('Erro ao consultar cliente:', error);
+    res.status(500).json({ error: 'Erro ao consultar cliente', details: error.message });
   }
+});
+
+router.delete('/:id', async (req, res) => {
+  const clientesId= req.params.id;
+  try {
+    const [cliente]= await pool.execute('SELECT * FROM cliente WHERE id = ?', [clientesId]);
+    if (cliente.length === 0) {
+      return res.status(404).json({ error: 'Cliente não encotrado'});
+    }
+
+    const [result] = await pool.execute('DELETE FROM cliente WHERE id  = ?', [clientesId]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Cliente não encontrado' });
+    }
+
+    res.json({ 
+      message: 'Cliente excluído com sucesso',
+      cliente: cliente[0].nome,
+      id: clientesId
+    });
+
+
+
+  } catch (error) {
+    console.error('Erro ao excluir cliente:', error);
+    res.status(500).json({ error: 'Erro ao excluir cliente', details: error.message });
+  }
+  
 });
 
 module.exports = router;
