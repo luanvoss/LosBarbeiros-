@@ -64,7 +64,49 @@ router.delete('/:id', async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao excluir cliente:', error);
-    res.status(500).json({ error: 'Erro ao excluir cliente', details: error.message });
+    res.status(500).json({ error: 'Erro ao excluir cliente, consulte se o cliente tem agendamento. Se "sim" exclua o agendamento', details: error.message });
+  }
+  });
+
+router.post('/', async (req, res) => {
+  const { Nome,Email,Telefone } = req.body;
+  
+  if (!Nome || Nome.trim() === '') {
+    return res.status(400).json({ 
+      error: 'Nome do cliente é obrigatório',
+      message: 'Forneça um nome válido para o cliente'
+    });
+  }
+  if (Nome.length > 30) {
+    return res.status(400).json({ 
+      error: 'Nome muito longo',
+      message: 'O nome do cliente deve ter no máximo 30 caracteres'
+    });
+  }
+  if(Telefone.length > 30){
+    return res.status(400).json({
+      error:'Telefone muito longo, use até 11 caracteres',
+      message: 'O telefone deve ter no máximo 11 caracteres'
+    });
+
+  }
+  try {
+    const [clienteExistente] = await pool.execute('SELECT * FROM cliente WHERE nome = ?', [Nome]);
+    if (clienteExistente.length > 0) {
+      return res.status(409).json({ 
+        error: 'Cliente já existe',
+        message: `Já existe uma cliente com o nome "${Nome}"`
+      });
+    }
+    const [result] = await pool.execute('INSERT INTO cliente (Nome,Email,Telefone) VALUES (?,?,?)', [Nome,Email,Telefone]);
+const [novoCliente] = await pool.execute('SELECT * FROM cliente WHERE id = ?', [result.insertId]);
+res.status(201).json({
+      message: 'Cliente cadastrado com sucesso',
+      cliente: novoCliente[0]
+    });
+    } catch (error) {
+    console.error('Erro ao cadastrar cliente:', error);
+    res.status(500).json({ error: 'Erro ao cadastrar cliente', details: error.message });
   }
   
 });
