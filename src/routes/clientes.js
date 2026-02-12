@@ -111,4 +111,100 @@ res.status(201).json({
   
 });
 
+router.put('/:id', async (req, res) => {
+  const clientesId = req.params.id;
+  const { Nome,Email,Telefone } = req.body;
+  
+  if (!Nome || Nome.trim() === '') {
+    return res.status(400).json({ 
+      error: 'Nome do cliente é obrigatório',
+      message: 'Forneça um nome válido para o cliente'
+    })
+  }
+  if (!Email || Email.trim() === '') {
+    return res.status(400).json({ 
+      error: 'Email do cliente é obrigatório',
+      message: 'Forneça um Email válido para o cliente'
+    })
+  }
+  if (!Telefone || Telefone.trim() === '') {
+    return res.status(400).json({ 
+      error: 'Telefone do cliente é obrigatório',
+      message: 'Forneça um Telefone válido para o cliente'
+    })
+  }
+      
+  if (Nome.length > 50) {
+    return res.status(400).json({ 
+      error: 'Nome muito longo',
+      message: 'O nome do cliente deve ter no máximo 50 caracteres'
+    });
+  }
+  if (Email.length > 50) {
+    return res.status(400).json({ 
+      error: 'E-mail muito longo',
+      message: 'O E-mail do cliente deve ter no máximo 50 caracteres'
+    });
+  }
+  if (Telefone.length > 11) {
+    return res.status(400).json({ 
+      error: 'Telefone muito longo',
+      message: 'O Telefone do cliente deve ter no máximo 11 caracteres'
+    });
+  }
+  try {
+    const [clienteExistente] = await pool.execute('SELECT * FROM cliente WHERE id = ?', [clientesId]);
+    if (clienteExistente.length === 0) {
+      return res.status(404).json({ error: 'Cliente não encontrado' });
+    }
+  
+    const [clienteComMesmoNome] = await pool.execute(
+      'SELECT * FROM cliente WHERE nome = ? AND id = ?', 
+      [Nome, clientesId]
+    );
+    if (clienteComMesmoNome.length > 0) {
+      return res.status(409).json({ 
+        error: 'cliente já existe',
+        message: `Já existe outro cliente com o nome "${Nome}"`
+      });
+    }
+    if (clienteExistente[0].nome === Nome) {
+      return res.status(200).json({
+        message: 'Cliente não foi modificado',
+        cliente: clienteExistente[0],
+        observacao: 'O cliente fornecido é igual ao cliente atual já cadastrado'
+      });
+    }
+
+
+    const [resultNome] = await pool.execute('UPDATE cliente SET Nome = ?, Email = ?, Telefone = ?, WHERE id = ?', [Nome, Email, Telefone, clientesId]);
+    if (resultNome.affectedRows === 0) {
+      return res.status(404).json({ error: 'Cliente não encontrado' });
+    }
+
+
+    // const [resultEmail] = await pool.execute('UPDATE cliente SET Email = ? WHERE id = ?', [Email, clientesId]);
+    // if (resultEmail.affectedRows === 0) {
+    //   return res.status(404).json({ error: 'Email não encontrado' });
+    // }
+
+    //  const [resultTelefone] = await pool.execute('UPDATE cliente SET Telefone = ? WHERE id = ?', [Telefone, clientesId]);
+    // if (resultTelefone.affectedRows === 0) {
+    //   return res.status(404).json({ error: 'Telefone não encontrado' });
+    // }
+
+
+    const [clienteAtualizado] = await pool.execute('SELECT * FROM cliente WHERE id = ?', [clientesId]);
+
+    res.json({
+      message: 'Cliente atualizada com sucesso',
+      clienteAtualizado: clienteAtualizado[0],
+      clienteAnterior: clienteExistente[0]
+    });
+    } catch (error) {
+    console.error('Erro ao atualizar cliente:', error);
+    res.status(500).json({ error: 'Erro ao atualizar cliente', details: error.message });
+  }
+});
+
 module.exports = router;
