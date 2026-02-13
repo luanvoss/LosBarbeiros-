@@ -42,7 +42,8 @@ router.get('/nome/:nome', async (req,res) => {
     res.status(500).json({ error: 'Erro ao consultar cliente', details: error.message });
   }
 });
-// Rota DELETE - /clientes/:id - deleta um cliente 
+
+// Rota DELETE - /clientes/:id - deleta um cliente
 router.delete('/:id', async (req, res) => {
   const clientesId= req.params.id;
   try {
@@ -51,7 +52,8 @@ router.delete('/:id', async (req, res) => {
     if (cliente.length === 0) {
       return res.status(404).json({ error: 'Cliente não encotrado'});
     }
-// Procede com a exclusão do cliente 
+
+// Procede com a exclusão do cliente
     const [result] = await pool.execute('DELETE FROM cliente WHERE id  = ?', [clientesId]);
     
     if (result.affectedRows === 0) {
@@ -63,7 +65,7 @@ router.delete('/:id', async (req, res) => {
       cliente: cliente[0].nome,
       id: clientesId
     });
-
+    
   } catch (error) {
     console.error('Erro ao excluir cliente:', error);
     res.status(500).json({ error: 'Erro ao excluir cliente, consulte se o cliente tem agendamento. Se "sim" exclua o agendamento', details: error.message });
@@ -74,25 +76,34 @@ router.delete('/:id', async (req, res) => {
 // Insere um novo cliente na tabela 'clientes' - INSERT INTO clientes  (nome) VALUES (?)
 router.post('/', async (req, res) => {
   const { Nome,Email,Telefone } = req.body;
-// Validação de dados
+  
+// Validação de dados, serve para remover espaços em branco do início e do final de uma string. Ele não remove espaços do meio do texto.
   if (!Nome || Nome.trim() === '') {
     return res.status(400).json({ 
       error: 'Nome do cliente é obrigatório',
       message: 'Forneça um nome válido para o cliente'
     });
   }
-// Verifica o tamanho do nome do cliente, se está dentro dos 50 caracteres permitidos 
+// Verifica o tamanho do nome do cliente, se está dentro dos 50 caracteres permitidos
   if (Nome.length > 50) {
     return res.status(400).json({ 
       error: 'Nome muito longo',
       message: 'O nome do cliente deve ter no máximo 30 caracteres'
     });
   }
-// Verifica o tamanho do telefone do cliente, se está dentro dos 11 caracteres permitidos 
+ // Verifica o tamanho do telefone do cliente, se está dentro dos 11 caracteres permitidos 
   if(Telefone.length > 11){
     return res.status(400).json({
       error:'Telefone muito longo, use até 11 caracteres',
       message: 'O telefone deve ter no máximo 11 caracteres'
+    });
+ }
+
+ // Verifica o tamanho do E-mail do cliente, se está dentro dos 50 caracteres permitidos 
+  if(Email.length > 50){
+    return res.status(400).json({
+      error:'E-mail muito longo, use até 50 caracteres',
+      message: 'O E-mail deve ter no máximo 50 caracteres'
     });
   }
 // Verifica o tamanho do E-mail do cliente, se está dentro dos 50 caracteres permitidos 
@@ -104,6 +115,7 @@ router.post('/', async (req, res) => {
   }
 // Verifica se já existe uma cliente com este nome
   try {
+// Verifica se já existe uma cliente com este nome
     const [clienteExistente] = await pool.execute('SELECT * FROM cliente WHERE nome = ?', [Nome]);
     if (clienteExistente.length > 0) {
       return res.status(409).json({ 
@@ -111,12 +123,13 @@ router.post('/', async (req, res) => {
         message: `Já existe uma cliente com o nome "${Nome}"`
       });
     }
+
 // Insere um novo cliente 
     const [result] = await pool.execute('INSERT INTO cliente (Nome,Email,Telefone) VALUES (?,?,?)', [Nome,Email,Telefone]);
-
+  
 // Busca um cliente inserido para retornar os dados completos (incluindo o ID criado automaticamente,Nome,E-mail,Telefone)
-    const [novoCliente] = await pool.execute('SELECT * FROM cliente WHERE id = ?', [result.insertId]);
-res.status(201).json({
+const [novoCliente] = await pool.execute('SELECT * FROM cliente WHERE id = ?', [result.insertId]);
+  res.status(201).json({
       message: 'Cliente cadastrado com sucesso',
       cliente: novoCliente[0]
     });
@@ -127,13 +140,13 @@ res.status(201).json({
   
 });
 
-// Rota PUT - /clientes/:id - atualiza um cliente específico pelo ID
+// Rota PUT - /clientes/:id - atualiza os dados de um cliente específico pelo ID
 // Atualiza os dados de um cliente existente - UPDATE categorias SET Nome,Email,Telefone = ? WHERE id,Nome,E-mail,Telefone = ?
 router.put('/:id', async (req, res) => {
   const clientesId = req.params.id;
   const { Nome,Email,Telefone } = req.body;
   
-  // Validação de dados
+// Validação de dados, serve para remover espaços em branco do início e do final de uma string. Ele não remove espaços do meio do texto.
   if (!Nome || Nome.trim() === '') {
     return res.status(400).json({ 
       error: 'Nome do cliente é obrigatório',
@@ -177,6 +190,7 @@ router.put('/:id', async (req, res) => {
 
   // Primeiro verifica se o cliente existe
   try {
+// Primeiro verifica se o cliente existe
     const [clienteExistente] = await pool.execute('SELECT * FROM cliente WHERE id = ?', [clientesId]);
     if (clienteExistente.length === 0) {
       return res.status(404).json({ error: 'Cliente não encontrado' });
@@ -193,7 +207,6 @@ router.put('/:id', async (req, res) => {
         message: `Já existe outro cliente com o nome "${Nome}"`
       });
     }
-
 // Se o nome é o mesmo que já existe, não precisa atualizar
     if (clienteExistente[0].nome === Nome) {
       return res.status(200).json({
@@ -209,17 +222,6 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Cliente não encontrado' });
     }
 
-
-    // const [resultEmail] = await pool.execute('UPDATE cliente SET Email = ? WHERE id = ?', [Email, clientesId]);
-    // if (resultEmail.affectedRows === 0) {
-    //   return res.status(404).json({ error: 'Email não encontrado' });
-    // }
-
-    //  const [resultTelefone] = await pool.execute('UPDATE cliente SET Telefone = ? WHERE id = ?', [Telefone, clientesId]);
-    // if (resultTelefone.affectedRows === 0) {
-    //   return res.status(404).json({ error: 'Telefone não encontrado' });
-    // }
-
 // Busca o cliente atualizado para retornar os dados completos
     const [clienteAtualizado] = await pool.execute('SELECT * FROM cliente WHERE id = ?', [clientesId]);
 
@@ -233,5 +235,133 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ error: 'Erro ao atualizar cliente', details: error.message });
   }
 });
+
+// Rota PATCH - /clientes/:id - atualiza algum dado específico do cliente 
+// Atualização sem afetar outros campos.
+router.patch('/updateNome/:id', async (req, res) => {
+  const clientesId = req.params.id;
+  const { Nome } = req.body;
+
+// Verifica o tamanho do nome do cliente, se está dentro dos 50 caracteres permitidos 
+  if (Nome.length > 50) {
+    return res.status(400).json({ 
+      error: 'Nome muito longo',
+      message: 'O nome do cliente deve ter no máximo 50 caracteres'
+    });
+  }
+  try {
+// Primeiro verifica se o cliente existe e está ativo
+    const [clienteExistente] = await pool.execute('SELECT * FROM cliente WHERE id = ? ', [clientesId]);
+    if (clienteExistente.length === 0) {
+      return res.status(404).json({ error: 'cliente não encontrado ou inativo' });
+    }
+  
+
+// Atualiza os dados do cliente 
+    const[result] = await pool.execute('UPDATE cliente SET Nome  = ? WHERE id = ?', [Nome,clientesId]);
+
+   if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'cliente não encontrado' });
+    }
+    res.json({
+      message: 'Nome atualizado com sucesso',
+      cliente: {
+        id: clientesId,
+        nome: clienteExistente[0].nome,
+      }
+     });
+     
+    } catch (error) {
+    console.error('Erro ao atualizar Nome:', error);
+    res.status(500).json({ error: 'Erro ao atualizar Nome', details: error.message });
+  }
+});
+
+router.patch('/updateEmail/:id', async (req, res) => {
+  const clientesId = req.params.id;
+  const { Email } = req.body;
+
+  // Verifica o tamanho do E-mail do cliente, se está dentro dos 50 caracteres permitidos 
+  if (Email.length > 50) {
+    return res.status(400).json({ 
+      error: 'E-mail muito longo',
+      message: 'O nome do cliente deve ter no máximo 50 caracteres'
+    });
+  }
+// Primeiro verifica se o cliente existe e está ativo
+  try{
+  const [clienteExistente] = await pool.execute('SELECT * FROM cliente WHERE id = ? ', [clientesId]);
+    if (clienteExistente.length === 0) {
+      return res.status(404).json({ error: 'cliente não encontrado ou inativo' });
+    }
+// Atualiza os dados do cliente 
+    const [resultEmail] = await pool.execute('UPDATE cliente SET Email  = ? WHERE id = ?', [Email,clientesId]);
+
+   if (resultEmail.affectedRows === 0) {
+      return res.status(404).json({ error: 'E-mail não encontrado' });
+    }
+    res.json({
+      message: 'Email atualizado com sucesso',
+      cliente: {
+        id: clientesId,
+        Email: clienteExistente[0].Email,
+    }
+     });
+     
+    } catch (error) {
+    console.error('Erro ao atualizar E-mail:', error);
+    res.status(500).json({ error: 'Erro ao atualizar E-mail', details: error.message });
+  }
+});
+
+router.patch('/updateTelefone/:id', async (req, res) => {
+  const clientesId = req.params.id;
+  const { Telefone } = req.body;
+
+// Verifica o tamanho do Telefone do cliente, se está dentro dos 11 caracteres permitidos 
+  if (Telefone.length > 11) {
+    return res.status(400).json({ 
+      error: 'E-mail muito longo',
+      message: 'O telefone do cliente deve ter no máximo 11 caracteres'
+    });
+  }
+  // Primeiro verifica se o cliente existe e está ativo
+  try{
+  const [clienteExistente] = await pool.execute('SELECT * FROM cliente WHERE id = ? ', [clientesId]);
+    if (clienteExistente.length === 0) {
+      return res.status(404).json({ error: 'cliente não encontrado ou inativo' });
+    }
+
+ // Atualiza os dados do cliente 
+    const [resultTelefone] = await pool.execute('UPDATE cliente SET Telefone  = ? WHERE id = ?', [Telefone,clientesId]);
+
+   if (resultTelefone.affectedRows === 0) {
+      return res.status(404).json({ error: 'telefone não encontrado' });
+    }
+    res.json({
+      message: 'Telefone atualizado com sucesso',
+      cliente: {
+        id: clientesId,
+        Telefone: clienteExistente[0].Telefone,
+    }
+     });
+     
+    } catch (error) {
+    console.error('Erro ao atualizar Telefone:', error);
+    res.status(500).json({ error: 'Erro ao atualizar telefone', details: error.message });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
 
 module.exports = router;
