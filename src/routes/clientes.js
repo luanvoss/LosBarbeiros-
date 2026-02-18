@@ -321,7 +321,7 @@ router.patch('/updateTelefone/:id', async (req, res) => {
 // Verifica o tamanho do Telefone do cliente, se está dentro dos 11 caracteres permitidos 
   if (Telefone.length > 11) {
     return res.status(400).json({ 
-      error: 'E-mail muito longo',
+      error: 'Telefone muito longo',
       message: 'O telefone do cliente deve ter no máximo 11 caracteres'
     });
   }
